@@ -123,11 +123,11 @@ export default function Register() {
   const onSubmitForm = useCallback(
     (e) => {
       e.preventDefault();
-      // const valDetail = validateRegisterPage(userDetail, true);
-      // if (Object.keys(valDetail).length) {
-      //   setValidationMsg(valDetail);
-      //   return;
-      // }
+      const valDetail = validateRegisterPage(userDetail, true);
+      if (Object.keys(valDetail).length) {
+        setValidationMsg(valDetail);
+        return;
+      }
       // console.log(userDetail);
 
       const payload = {
