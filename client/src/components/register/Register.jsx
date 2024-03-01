@@ -14,7 +14,6 @@ import {
   IconButton,
   InputAdornment,
   InputLabel,
-  MenuItem,
   OutlinedInput,
   Select,
 } from "@mui/material";
@@ -29,10 +28,13 @@ import {
 } from "../../constants/apiEndpoint";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
+import Autocomplete from "@mui/material/Autocomplete";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import AlertMessage from "../../alert/AlertMessage";
+import ModalPopup from "../../popup/ModalPopup";
+import { FAILURE_MSG, SUCCESS_MSG } from "../../constants/messages";
 
 // TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
@@ -46,9 +48,9 @@ const INITIAL_STATE = {
   city: "",
   state: "",
   pincode: "",
-  country: "",
+  country: null,
   mobileNo: "",
-  countryCode: "",
+  countryCode: null,
   address: "",
   isSeller: false,
 };
@@ -60,7 +62,7 @@ const getCountryDetail = (data) => {
       countryName: el?.name?.common,
       stdCode: el.idd.root + el.idd.suffixes[0],
     }));
-  console.log(countryDetail);
+  // console.log(countryDetail);
   return countryDetail;
 };
 export default function Register() {
@@ -71,6 +73,19 @@ export default function Register() {
 
   const [userDetail, setUserDetail] = useState(INITIAL_STATE);
   const [validationMsg, setValidationMsg] = useState({});
+
+  // state create for modal
+  const [isModalPopupOpen, setIsModalPopupOpen] = useState({
+    open: false,
+    message: "",
+  });
+
+  // state create for alert
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isErrorAlert, setIsErrorAlert] = useState({
+    message: "",
+    severty: "",
+  });
 
   const onLinkClickHandler = (pageUrl) => {
     navigate(pageUrl);
@@ -84,7 +99,7 @@ export default function Register() {
         return res.json();
       })
       .then((data) => {
-        console.log(data);
+        // console.log(data);
         const countryDetail = getCountryDetail(data);
         setCountryDetails(countryDetail);
       });
@@ -107,10 +122,18 @@ export default function Register() {
     (event, fieldName) => {
       if (fieldName !== "dob") event.preventDefault();
       const userDetailsTemp = { ...userDetail };
-      userDetailsTemp[fieldName] === "isSeller"
-        ? (userDetailsTemp[fieldName] = event.target.checked)
-        : (userDetailsTemp[fieldName] =
-            fieldName !== "dob" ? event.target.value : event);
+      if (userDetailsTemp[fieldName] === "isSeller") {
+        userDetailsTemp[fieldName] = event.target.checked;
+      } else {
+        if (fieldName === "dob") {
+          userDetailsTemp[fieldName] = event;
+        } else if (fieldName === "country" || fieldName === "countryCode") {
+          userDetailsTemp[fieldName] = event.target.innerText;
+        } else {
+          userDetailsTemp[fieldName] = event.target.value;
+        }
+      }
+
       setUserDetail(userDetailsTemp);
     },
     [userDetail, setUserDetail]
@@ -155,16 +178,50 @@ export default function Register() {
     [userDetail, setValidationMsg]
   );
 
-  const onRegisterHandler = (resposne) => {
-    console.log("response", resposne);
+  const onCloseModalPopup = () => {
+    setIsModalPopupOpen({ open: false });
+  };
+
+  const onRegisterHandler = (response) => {
+    // console.log("response", response);
+    // console.log(response.status);
+    if (response.status === 200) {
+      setIsModalPopupOpen({
+        open: true,
+        message: response.message || SUCCESS_MSG,
+      });
+    } else {
+      setIsAlertOpen(true);
+      setIsErrorAlert({
+        message: response.message || FAILURE_MSG,
+        severity: "error",
+      });
+    }
   };
 
   const onRequestFailure = (error) => {
-    console.log("error", error);
+    // console.log("error", error);
+  };
+
+  // handle alert message close functionality
+  const handleCloseAlert = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setIsAlertOpen(false);
   };
 
   return (
     <ThemeProvider theme={defaultTheme}>
+      <AlertMessage
+        isAlertOpen={isAlertOpen}
+        isErrorAlert={isErrorAlert}
+        handleCloseAlert={handleCloseAlert}
+      />
+      <ModalPopup
+        isModalPopupOpen={isModalPopupOpen}
+        onCloseModalPopup={onCloseModalPopup}
+      />
       <Container component="main" maxWidth="md" sx={{ marginTop: "85px" }}>
         <Card>
           <CardContent>
@@ -227,14 +284,8 @@ export default function Register() {
                     ""
                   )}
                 </Grid>
-                <Grid
-                  item
-                  xs={12}
-                  sm={6}
-                  sx={{ marginTop: "-8px", width: "auto" }}
-                >
+                <Grid item xs={12} sm={6} sx={{ width: "auto" }}>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    {/* <DemoContainer components={["DatePicker"]}> */}
                     <DatePicker
                       name="dob"
                       id="dob"
@@ -248,7 +299,6 @@ export default function Register() {
                         handleOnChange(value, "dob");
                       }}
                     />
-                    {/* </DemoContainer> */}
                   </LocalizationProvider>
                   {validationMsg.dob ? (
                     <span style={{ color: "red" }}>{validationMsg.dob}</span>
@@ -262,7 +312,6 @@ export default function Register() {
                     name="email"
                     id="email"
                     label="Email Address"
-                    autoComplete="email"
                     required
                     value={userDetail.email}
                     fullWidth
@@ -448,27 +497,17 @@ export default function Register() {
                   )}
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="country-label">Country</InputLabel>
-                    <Select
-                      labelId="country-label"
-                      id="country"
-                      value={userDetail.country}
-                      label="Country"
-                      onChange={(e) => {
-                        handleOnChange(e, "country");
-                      }}
-                    >
-                      {countryDetails.map((item) => (
-                        <MenuItem
-                          key={item.countryName}
-                          value={item.countryName}
-                        >
-                          {item.countryName}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    id="country"
+                    value={userDetail.country}
+                    options={countryDetails.map((item) => item.countryName)}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Country" />
+                    )}
+                    onChange={(e) => {
+                      handleOnChange(e, "country");
+                    }}
+                  />
                   {validationMsg.country ? (
                     <span style={{ color: "red" }}>
                       {validationMsg.country}
@@ -478,26 +517,17 @@ export default function Register() {
                   )}
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="country-code-label">
-                      Country Code
-                    </InputLabel>
-                    <Select
-                      labelId="country-code-label"
-                      id="country-code"
-                      value={userDetail.countryCode}
-                      label="Country Code"
-                      onChange={(e) => {
-                        handleOnChange(e, "countryCode");
-                      }}
-                    >
-                      {countryDetails.map((item) => (
-                        <MenuItem key={item.stdCode} value={item.stdCode}>
-                          {item.stdCode}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    id="country-code"
+                    value={userDetail.countryCode}
+                    options={countryDetails.map((item) => item.stdCode)}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Country Code" />
+                    )}
+                    onChange={(e) => {
+                      handleOnChange(e, "countryCode");
+                    }}
+                  />
                   {validationMsg.countryCode ? (
                     <span style={{ color: "red" }}>
                       {validationMsg.countryCode}
