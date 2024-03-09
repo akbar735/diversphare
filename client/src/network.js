@@ -32,6 +32,8 @@ export class HttpRequest {
   }
 
   async _request(url, method, payload) {
+    // this.successCallBack({ status: 200, message: "User Created" });
+    // return;
     if (url) {
       const result = await this._fetch(url, {
         ...this.option,

@@ -19,7 +19,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import FormControl from "@mui/material/FormControl";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { validateLoginPage } from "../../utils";
+import { setAuthCookie, validateLoginPage } from "../../utils";
 import { HttpRequest } from "../../network";
 import { apiEndpoints } from "../../constants/apiEndpoint";
 import Card from "@mui/material/Card";
@@ -80,8 +80,12 @@ export default function Login() {
   );
 
   const onLoginHandler = (resposne) => {
-    console.log("success");
     console.log("response", resposne);
+    const { status, token } = resposne;
+    if (status === 200) {
+      setAuthCookie("Authorization", token);
+      navigate("/");
+    }
   };
 
   const onRequestFailure = (error) => {
