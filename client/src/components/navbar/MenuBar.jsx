@@ -15,6 +15,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { allPages, pageList } from "../../constants/pages";
 import { useNavigate } from "react-router-dom";
+import { deleteAuthCookie, getAuthCookie } from "../../utils";
 
 export default function MenuBar() {
   const navigate = useNavigate();
@@ -29,6 +30,17 @@ export default function MenuBar() {
 
   const onListItemClickHandler = (url) => {
     navigate(url);
+  };
+
+  // get cookie
+  const authToken = getAuthCookie("Authorization");
+
+  const onLoginHandler = (url) => {
+    navigate(url);
+    console.log(authToken);
+    if (authToken) {
+      deleteAuthCookie();
+    }
   };
 
   return (
@@ -49,9 +61,9 @@ export default function MenuBar() {
         <Button
           color="inherit"
           sx={{ marginLeft: "auto", marginTop: "3px", fontSize: "18px" }}
-          onClick={() => onListItemClickHandler(allPages.LOGIN)}
+          onClick={() => onLoginHandler(allPages.LOGIN)}
         >
-          Login
+          {authToken ? "Logout" : "Login"}
         </Button>
       </Toolbar>
       <Drawer anchor={"left"} open={state} onClose={toggleDrawer}>
