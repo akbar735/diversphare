@@ -1,7 +1,10 @@
 package utility
 
 import (
+	"io"
+	"mime/multipart"
 	"os"
+	"path/filepath"
 	"time"
 
 	"bitbucket.org/ali_akbar7352/diversphare/models"
@@ -52,4 +55,26 @@ func HashPassword(password string) (string, error) {
 func CheckPasswordHash(password, hashedPassword string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
+}
+
+// SaveUploadedFile uploads the form file to specific dst.
+func SaveUploadedFile(file *multipart.FileHeader, dst string) error {
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	if err = os.MkdirAll(filepath.Dir(dst), 0750); err != nil {
+		return err
+	}
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, src)
+	return err
 }
