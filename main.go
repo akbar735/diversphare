@@ -20,8 +20,10 @@ var (
 	server            *gin.Engine
 	userservice       services.UserService
 	productservice    services.ProductService
+	fileservice       services.FileService
 	usercontroller    controllers.UserController
 	productcontroller controllers.ProductController
+	filecontroller    controllers.FileController
 	ctx               context.Context
 	usercollection    *mongo.Collection
 	productcollection *mongo.Collection
@@ -33,6 +35,7 @@ var (
 func init() {
 	ctx := context.TODO()
 	connectuin_string := utility.GetEnv("CONNECTION_URI", "mongodb://localhost:27017")
+	println(connectuin_string)
 	mongoconn := options.Client().ApplyURI(connectuin_string)
 	mongoclient, err = mongo.Connect(ctx, mongoconn)
 	if err != nil {
@@ -51,11 +54,14 @@ func init() {
 
 	userservice = services.NewUserService(usercollection, ctx)
 	productservice = services.NewProductService(productcollection, ctx)
+	fileservice = services.NewFileService(ctx)
 
 	usercontroller = controllers.NewUserController(userservice)
 	productcontroller = controllers.NewProductController(productservice)
+	filecontroller = controllers.NewFileController(fileservice)
 
 	server = gin.Default()
+	server.MaxMultipartMemory = 8 << 20 // 8 MiB
 }
 
 func main() {
@@ -70,9 +76,11 @@ func main() {
 		Credentials:     false,
 		ValidateHeaders: false,
 	}))
+	server.Static("/files", "./uploads")
 
 	basepath := server.Group("/v1")
 	usercontroller.RegisterUserRoutes(basepath)
 	productcontroller.RegisterProductContller(basepath)
+	filecontroller.RegisterFileContller(basepath)
 	log.Fatal(server.Run(":9090"))
 }

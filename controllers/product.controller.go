@@ -22,6 +22,7 @@ func NewProductController(productservice services.ProductService) ProductControl
 
 func (pc *ProductController) CreateProduct(ctx *gin.Context) {
 	var product *models.Product
+
 	if err := ctx.ShouldBindJSON(&product); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -33,7 +34,6 @@ func (pc *ProductController) CreateProduct(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "success"})
-
 }
 
 func (pc *ProductController) UpdateProduct(ctx *gin.Context) {
@@ -109,6 +109,7 @@ func (pc *ProductController) DeleteProduct(ctx *gin.Context) {
 
 func (pc *ProductController) RegisterProductContller(rg *gin.RouterGroup) {
 	productroute := rg.Group("/products")
+
 	productroute.Use(middleware.AuthMiddleware)
 
 	productroute.POST("/addproduct", pc.CreateProduct)
